@@ -486,7 +486,8 @@ if os['family'] == 'RedHat'
       # ID     | Login user               | Date and time    | 8< SNIP >8
       # ------------------------------------------------------ 8< SNIP >8
       #     69 | System <unset>           | 2018-09-17 17:18 | 8< SNIP >8
-      matchdata = line.to_s.match(/^\s+(\d+)\s*\|\s*[\w\-<>,= ]*\|\s*([\d:\- ]*)/)
+      #matchdata = line.to_s.match(/^\s+(\d+)\s*\|\s*[\w\-<>,= ]*\|\s*([\d:\- ]*)/)
+      matchdata = line.to_s.match(/^\s*(\d+).*(\d\d\d\d[-]\d\d[-]\d\d \d\d:\d\d(:\d\d){0,1})/)
       next unless matchdata
       job = matchdata[1]
       yum_end = matchdata[2]
@@ -502,7 +503,10 @@ if os['family'] == 'RedHat'
     # Check that the first yum history entry was after the yum_start time
     # we captured.  Append ':59' to the date as yum history only gives the
     # minute and if yum bails, it will usually be pretty quick
-    parsed_end = Time.parse(yum_end + ':59').iso8601
+    if yum_end.length == 16
+      yum_end = yum_end + ':59'
+    end
+    parsed_end = Time.parse(yum_end).iso8601
     err(1, 'os_patching/dnf', 'dnf did not appear to run', starttime) if parsed_end < starttime
 
     # Capture the yum return code
