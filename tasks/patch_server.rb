@@ -285,7 +285,7 @@ pinned_pkgs = os_patching['pinned_packages']
 # Should we clean the cache prior to starting?
 if params['clean_cache'] && params['clean_cache'] == true
   clean_cache = if os['family'] == 'RedHat'
-                  'yum clean all'
+                  'dnf clean all'
                 elsif os['family'] == 'Debian'
                   'apt-get clean'
                 elsif os['family'] == 'Suse'
@@ -368,7 +368,7 @@ yum_params = if params['yum_params']
 
 # Make sure we're not doing something unsafe
 if yum_params =~ %r{[\$\|\/;`&]}
-  err('110', 'os_patching/yum_params', 'Unsafe content in yum_params', starttime)
+  err('110', 'os_patching/dnf_params', 'Unsafe content in yum_params', starttime)
 end
 
 # Have we had any dpkg parameter specified?
@@ -468,18 +468,18 @@ end
 
 # Run the patching
 if os['family'] == 'RedHat'
-  log.info 'Running yum upgrade'
+  log.info 'Running dnf upgrade'
   log.debug "Timeout value set to : #{timeout}"
   yum_end = ''
-  status, output = run_with_timeout("yum #{yum_params} #{securityflag} upgrade -y", timeout, 2)
-  err(status, 'os_patching/yum', "yum upgrade returned non-zero (#{status}) : #{output}", starttime) if status != 0
+  status, output = run_with_timeout("dnf #{yum_params} #{securityflag} upgrade -y", timeout, 2)
+  err(status, 'os_patching/dnf', "dnf upgrade returned non-zero (#{status}) : #{output}", starttime) if status != 0
 
   if os['release']['major'].to_i > 5
     # Capture the yum job ID
     log.info 'Getting yum job ID'
     job = ''
-    yum_id, stderr, status = Open3.capture3('yum history')
-    err(status, 'os_patching/yum', stderr, starttime) if status != 0
+    yum_id, stderr, status = Open3.capture3('dnf history list')
+    err(status, 'os_patching/dnf', stderr, starttime) if status != 0
     yum_id.split("\n").each do |line|
       # Quite the regex.  This pulls out fields 1 & 3 from the first info line
       # from `yum history`,  which look like this :
@@ -494,22 +494,22 @@ if os['family'] == 'RedHat'
     end
 
     # Fail if we didn't capture a job ID
-    err(1, 'os_patching/yum', 'yum job ID not found', starttime) if job.empty?
+    err(1, 'os_patching/dnf', 'dnf job ID not found', starttime) if job.empty?
 
     # Fail if we didn't capture a job time
-    err(1, 'os_patching/yum', 'yum job time not found', starttime) if yum_end.empty?
+    err(1, 'os_patching/dnf', 'dnf job time not found', starttime) if yum_end.empty?
 
     # Check that the first yum history entry was after the yum_start time
     # we captured.  Append ':59' to the date as yum history only gives the
     # minute and if yum bails, it will usually be pretty quick
     parsed_end = Time.parse(yum_end + ':59').iso8601
-    err(1, 'os_patching/yum', 'Yum did not appear to run', starttime) if parsed_end < starttime
+    err(1, 'os_patching/dnf', 'dnf did not appear to run', starttime) if parsed_end < starttime
 
     # Capture the yum return code
-    log.debug "Getting yum return code for job #{job}"
-    yum_status, stderr, status = Open3.capture3("yum history info #{job}")
+    log.debug "Getting dnf return code for job #{job}"
+    yum_status, stderr, status = Open3.capture3("dnf history info #{job}")
     yum_return = ''
-    err(status, 'os_patching/yum', stderr, starttime) if status != 0
+    err(status, 'os_patching/dnf', stderr, starttime) if status != 0
     yum_status.split("\n").each do |line|
       matchdata = line.match(/^Return-Code\s+:\s+(.*)$/)
       next unless matchdata
@@ -517,13 +517,13 @@ if os['family'] == 'RedHat'
       break
     end
 
-    err(status, 'os_patching/yum', 'yum return code not found', starttime) if yum_return.empty?
+    err(status, 'os_patching/dnf', 'dnf return code not found', starttime) if yum_return.empty?
 
     pkg_hash = {}
     # Pull out the updated package list from yum history
     log.debug "Getting updated package list for job #{job}"
-    updated_packages, stderr, status = Open3.capture3("yum history info #{job}")
-    err(status, 'os_patching/yum', stderr, starttime) if status != 0
+    updated_packages, stderr, status = Open3.capture3("dnf history info #{job}")
+    err(status, 'os_patching/dnf', stderr, starttime) if status != 0
     updated_packages.split("\n").each do |line|
       matchdata = line.match(/^\s+(Installed|Install|Upgraded|Erased|Updated)\s+(\S+)\s/)
       next unless matchdata
