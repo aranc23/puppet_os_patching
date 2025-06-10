@@ -515,7 +515,7 @@ if os['family'] == 'RedHat'
     yum_return = ''
     err(status, 'os_patching/dnf', stderr, starttime) if status != 0
     yum_status.split("\n").each do |line|
-      matchdata = line.match(/^Return-Code\s+:\s+(.*)$/)
+      matchdata = line.match(/^(Return-Code|Status)\s+:\s+(.*)$/)
       next unless matchdata
       yum_return = matchdata[1]
       break
