@@ -28,6 +28,10 @@
     "clean_cache": {
       "description": "Should the yum/dpkg caches be cleaned at the start of the task? (Defaults to false)",
       "type": "Optional[Boolean]"
+    },
+    "shutdown_cmd": {
+      "description": "Run this command to reboot the system",
+      "type": "Optional[String]"
     }
   },
   "implementations": [

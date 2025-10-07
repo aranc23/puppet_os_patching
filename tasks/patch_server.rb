@@ -245,6 +245,11 @@ rescue JSON::ParserError
   err(400, 'os_patching/input', "Invalid JSON received: '#{raw}'", starttime)
 end
 
+if params['shutdown_cmd']
+  # replace the "shutdown" command with the one from the parameter
+  shutdown_cmd = params['shutdown_cmd']
+end
+  
 log.info 'os_patching run started'
 
 # ensure node has been tagged with os_patching class by checking for fact generation script
