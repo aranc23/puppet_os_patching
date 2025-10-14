@@ -26,12 +26,10 @@ fi
 
 if [ $(puppet --version|cut -d. -f1) -gt 6 ]; then
   OSFAMILY=$(puppet facts show --render-as s osfamily | cut -d\" -f4)
-  OSNAME=$(puppet facts os | jq -r '.os.name')
   VARDIR=$(puppet config print vardir)
   OSRELEASEMAJOR=$(puppet facts show --render-as s os.release.major | cut -d\" -f4)
 else
   OSFAMILY=$(facter osfamily)
-  OSNAME=$(facter operatingsystem)
   VARDIR=$(facter -p puppet_vardir)
   OSRELEASEMAJOR=$(facter os.release.major)
 fi
@@ -44,17 +42,9 @@ case $OSFAMILY in
     # Security: kernel-3.14.2-200.fc20.x86_64 is the currently running version
     # ---
     # We need to filter those out as they screw up the package listing
-    case $OSNAME in
-      Fedora)
-        PKGS=$(yum -q advisory list --json|jq -r '.[]|.nevra')
-        SECPKGS=$(yum -q advisory list --security --json|jq -r '.[]|.nevra')
-        ;;
-      *)
-        PKGS=$(yum -q check-update 2>/dev/null| egrep -v "^[Ss]ecurity:" | grep -oP '^.*?(?= )')
-        SECPKGS=$(yum -q --security check-update 2>/dev/null| egrep -v "^Security:" | grep -oP '^.*?(?= )')
-        ;;
-    esac
+    PKGS=$(yum -q check-update 2>/dev/null| egrep -v "^[Ss]ecurity:" | grep -oP '^.*?(?= )')
     PKGS=$(echo $PKGS | sed 's/Obsoleting.*//')
+    SECPKGS=$(yum -q --security check-update 2>/dev/null| egrep -v "^Security:" | grep -oP '^.*?(?= )')
     SECPKGS=$(echo $SECPKGS | sed 's/Obsoleting.*//')
     HELDPKGS=$([ -r /etc/yum/pluginconf.d/versionlock.list ] && awk -F':' '/:/ {print $2}' /etc/yum/pluginconf.d/versionlock.list | sed 's/-[0-9].*//')
   ;;
